@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,6 +53,61 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
 #adOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;flex-direction:column;z-index:999}
 #adOverlay iframe{border:none}
 #adOverlay p{color:white;font-size:20px;margin-top:10px;}
+
+.songLikes{
+font-size:12px;
+color:#1DB954;
+}
+
+/* pleycount*/
+
+.playCount{
+  font-size:12px;
+  color:#1DB954;
+  animation: playPulse 0.6s ease;
+}
+
+@keyframes playPulse{
+  0%{
+    transform:scale(1);
+    opacity:0.6;
+  }
+  50%{
+    transform:scale(1.3);
+    opacity:1;
+  }
+  100%{
+    transform:scale(1);
+  }
+}
+/*equalizer*/
+
+.equalizer{
+  display:flex;
+  gap:3px;
+  margin:5px 0;
+  height:15px;
+  align-items:flex-end;
+}
+
+.equalizer span{
+  width:3px;
+  background:#1DB954;
+  height:5px;
+  animation:equalizer 1s infinite ease-in-out;
+}
+
+.equalizer span:nth-child(1){animation-delay:0s;}
+.equalizer span:nth-child(2){animation-delay:0.2s;}
+.equalizer span:nth-child(3){animation-delay:0.4s;}
+.equalizer span:nth-child(4){animation-delay:0.6s;}
+.equalizer span:nth-child(5){animation-delay:0.8s;}
+
+@keyframes equalizer{
+  0%{height:5px}
+  50%{height:15px}
+  100%{height:5px}
+}
 </style>
 </head>
 <body>
@@ -71,8 +127,9 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
         <h4 id="userName"></h4>
         <p id="userEmail" style="font-size:9px"></p>
       </div>
+
     </div>
-<button id="installBtn">📥 Install App</button>
+
 
     <div id="songCount">Total Songs: 0</div>
     <div class="tabs">
@@ -81,7 +138,11 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
       <button class="tabBtn" data-lang="sinhala">Sinhala</button>
       <button class="tabBtn" data-lang="tamil">Tamil</button>
       <button class="tabBtn" data-lang="other">Other</button>
+      <button class="tabBtn" data-lang="favorites">❤️ Favorites</button>
     </div>
+
+
+
     <div class="topPanel">
       <input type="text" placeholder="Search music..." id="search" class="search">
       <div>
@@ -95,19 +156,31 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
 
 <div id="playerPage">
   <img id="songImg">
-  <div class="playerInfo">
-    <h4 id="songTitle"></h4>
-    <p id="artist" style="font-size:12px"></p>
-    <div id="progressContainer">
-      <div id="progressBar"></div>
-    </div>
-    <div id="timeDisplay">00:00 / 00:00</div>
+<div class="playerInfo">
+  <h4 id="songTitle"></h4>
+  <p id="artist" style="font-size:12px"></p>
+
+  <div class="equalizer" id="equalizer">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
   </div>
+
+  <div id="progressContainer">
+    <div id="progressBar"></div>
+  </div>
+
+  <div id="timeDisplay">00:00 / 00:00</div>
+</div>
   <div class="playerControls">
-    <button id="likeBtn">❤️ Like</button>
-    <a id="downloadBtn" href="" download><button>⬇ Download</button></a>
-    <button id="closePlayerBtn">✖</button>
-  </div>
+  <button id="likeBtn">❤️ Like</button>
+  <button id="playPauseBtn">⏸ Pause</button>
+  <a id="downloadBtn" href="" download><button>⬇ Download</button></a>
+ 
+</div>
+
   <audio id="audio"></audio>
 </div>
 
@@ -134,7 +207,10 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
   <p id="adTimer">Ad ends in 10s</p>
 </div>
 
+
 <script type="module">
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, increment, arrayUnion, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -213,7 +289,14 @@ adminBtn.onclick=()=>{ const p=prompt("Enter Admin Password:"); if(p==="15013"){
 closeAdminBtn.onclick=()=>{ adminPage.style.display="none"; }
 
 // SONGS
-onSnapshot(songsCol,snapshot=>{ songs=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})); renderSongs(songs); });
+onSnapshot(songsCol,snapshot=>{ songs=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+
+// ⭐ TRENDING SORT
+songs.sort((a,b)=>{
+  const scoreA = (a.likes||0)*2 + (a.plays||0);
+  const scoreB = (b.likes||0)*2 + (b.plays||0);
+  return scoreB - scoreA;
+});renderSongs(songs); });
 
 // FILTER TABS
 tabs.forEach(tab=>{ tab.onclick=()=>{ tabs.forEach(t=>t.classList.remove("active")); tab.classList.add("active"); currentLangFilter=tab.dataset.lang; renderSongs(songs); } });
@@ -221,13 +304,33 @@ tabs.forEach(tab=>{ tab.onclick=()=>{ tabs.forEach(t=>t.classList.remove("active
 // RENDER SONGS
 function renderSongs(list){
   songsContainer.innerHTML="";
-  const filtered=list.filter(s=>currentLangFilter==="all"||s.language===currentLangFilter);
+let filtered;
+
+if(currentLangFilter==="favorites"){
+  filtered = list.filter(s => 
+    s.likedUsers?.includes(currentUser?.uid)
+  );
+}
+else{
+  filtered = list.filter(s => 
+    currentLangFilter==="all" || s.language===currentLangFilter
+  );
+}
   filtered.forEach((song,i)=>{
     const div=document.createElement("div");
     div.className="songCard";
     const songInfo=document.createElement("div");
     songInfo.className="songInfo";
-    songInfo.innerHTML=`<img src="${song.img}"><div><h4>${song.title}</h4><span class="songLikes">Likes: ${song.likes||0}</span></div>`;
+songInfo.innerHTML=`
+<img src="${song.img}">
+<div>
+<h4>${song.title}</h4>
+<div style="font-size:12px;color:#1DB954">
+❤️ ${song.likes||0}
+<span class="playCount">▶ ${song.plays||0}</span>
+</div>
+</div>
+`;
     songInfo.onclick=()=>openPlayer(song.id,div);
     div.appendChild(songInfo);
     const delBtn=document.createElement("button");
@@ -240,8 +343,51 @@ function renderSongs(list){
   songCount.innerText="Total Songs: "+filtered.length;
 }
 
+// favorite 
+tabs.forEach(tab=>{
+  tab.onclick=()=>{
+
+    if(tab.dataset.lang==="favorites" && !currentUser){
+      alert("Login to see favorites ❤️");
+      return;
+    }
+
+    tabs.forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+
+    currentLangFilter=tab.dataset.lang;
+
+    renderSongs(songs);
+  }
+});
+
+
 // PLAYER
-function openPlayer(songId,cardDiv){
+const playPauseBtn = document.getElementById("playPauseBtn");
+
+playPauseBtn.onclick = () => {
+
+  if(audio.paused){
+    audio.play();
+    playPauseBtn.innerText = "⏸ Pause";
+  }
+  else{
+    audio.pause();
+    playPauseBtn.innerText = "▶ Play";
+  }
+
+};
+
+
+async function openPlayer(songId,cardDiv){
+
+  document.getElementById("equalizer").style.opacity="1";
+audio.onpause=()=>{
+  document.getElementById("equalizer").style.opacity="0.3";
+};
+audio.onplay=()=>{
+  document.getElementById("equalizer").style.opacity="1";
+};
 
   const index = songs.findIndex(s => s.id === songId);
   current = index;
@@ -254,6 +400,7 @@ function openPlayer(songId,cardDiv){
 
   audio.src = song.url;
   audio.play();
+  playPauseBtn.innerText = "⏸ Pause";
 
   downloadBtn.href = song.url;
 
@@ -264,7 +411,28 @@ function openPlayer(songId,cardDiv){
   cardDiv.classList.add("selected");
   selectedCard = cardDiv;
 
+  setTimeout(()=>{
+  const plays = document.querySelectorAll(".playCount");
+  plays.forEach(p=>{
+    p.style.animation="none";
+    p.offsetHeight;
+    p.style.animation="playPulse 0.6s ease";
+  });
+},200);
+
+
+  // ⭐ PLAY COUNT UPDATE
+  try{
+    const songDoc = doc(db,"songs",song.id);
+    await updateDoc(songDoc,{
+      plays: increment(1)
+    });
+  }catch(e){
+    console.log(e);
+  }
+
 }
+
 // LIKE
 likeBtn.onclick=async()=>{
   if(!currentUser) return alert("Login to like songs!");
@@ -281,8 +449,35 @@ uploadBtn.onclick=async()=>{
   const u=document.getElementById("songURL").value.trim();
   const i=document.getElementById("imgURL").value.trim();
   const lang=document.getElementById("songLang").value;
-  if(!t||!a||!u||!i){ alert("Fill all fields!"); return; }
-  try{ await addDoc(songsCol,{title:t,artist:a,url:u,img:i,likes:0,likedUsers:[],language:lang}); alert("Song Uploaded ✅"); document.getElementById("songName").value=""; document.getElementById("artistName").value=""; document.getElementById("songURL").value=""; document.getElementById("imgURL").value="";}catch(e){alert("Upload failed ❌"); console.error(e);}
+
+  if(!t||!a||!u||!i){
+    alert("Fill all fields!");
+    return;
+  }
+
+  try{
+    await addDoc(songsCol,{
+      title:t,
+      artist:a,
+      url:u,
+      img:i,
+      likes:0,
+      plays:0,   // ⭐ NEW
+      likedUsers:[],
+      language:lang
+    });
+
+    alert("Song Uploaded ✅");
+
+    document.getElementById("songName").value="";
+    document.getElementById("artistName").value="";
+    document.getElementById("songURL").value="";
+    document.getElementById("imgURL").value="";
+
+  }catch(e){
+    alert("Upload failed ❌");
+    console.error(e);
+  }
 }
 
 // SEARCH
@@ -384,6 +579,7 @@ installBtn.addEventListener("click", async ()=>{
     }, 5000);
   });
 </script>
+
 
 </body>
 </html>
