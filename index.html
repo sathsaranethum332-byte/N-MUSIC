@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N Music Streaming</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
+body{background:#0f172a;color:white;display:flex;flex-direction:column;height:100vh;}
+#loginPage{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;width:100%;background:#0f172a}
+.loginBtn{padding:12px 30px;border:none;border-radius:30px;background:#1DB954;color:white;font-weight:bold;cursor:pointer;box-shadow:0 0 10px #32fc00;}
+#mainContent{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+#songList{width:100%;background:#020617;overflow-y:auto;height:100%;padding:10px}
+.tabs{display:flex;gap:10px;margin-bottom:10px}
+.tabBtn{padding:5px 10px;border-radius:20px;border:none;cursor:pointer;background:#1b2430;color:white}
+.tabBtn.active{background:#1DB954;color:white}
+.songCard{display:flex;gap:10px;align-items:center;background:#0b0f1c;margin-bottom:10px;padding:10px;border-radius:10px;cursor:pointer;transition:0.3s;justify-content:space-between;}
+.songCard.selected{background:#1DB954;padding:5px;}
+.songInfo{display:flex;gap:10px;align-items:center}
+.songCard img{width:50px;height:50px;border-radius:50%;object-fit:cover}
+.songCard h4{margin:0;font-size:16px}
+.songLikes{font-size:12px;color:#1DB954}
+.userPanel{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.userPanel img{width:40px;height:40px;border-radius:50%}
+.userPanel div{display:flex;flex-direction:column}
+.topPanel{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;gap:10px}
+.topPanel div{display:flex;gap:5px}
+.search{padding:5px;border-radius:20px;border:none;width:100%;height:40px;padding:5px 10px;}
+#adminBtn, #logoutBtn{padding:5px 10px;border-radius:20px;border:none;cursor:pointer}
+#adminBtn{background:#1DB954;color:white;display:none;}
+#logoutBtn{background:red;color:white;display:none;}
+#songCount{margin-bottom:10px;font-size:14px;color:#1DB954;}
+#playerPage{position:fixed;bottom:0;left:0;width:100%;background:#020617;padding:10px;display:none;align-items:center;justify-content:space-between;z-index:100}
+#playerPage img{width:60px;height:60px;border-radius:10px;cursor:pointer}
+.playerInfo{flex:1;margin-left:10px}
+.playerControls{display:flex;align-items:center;gap:10px}
+.playerControls button{padding:8px 12px;border:none;border-radius:20px;background:#1DB954;color:white;cursor:pointer}
+#closePlayerBtn{background:red;border:none;color:white;padding:5px 8px;border-radius:5px;cursor:pointer}
+#adminPage{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);background:#020617;padding:20px;border-radius:10px;z-index:101}
+.upload input, .upload select{padding:8px;margin-bottom:5px;width:90%;border-radius:20px;}
+.upload button{padding:8px 12px;background:#1DB954;border:none;color:white;cursor:pointer;margin-right:5px}
+
+/* PROGRESS BAR */
+#progressContainer{width:100%;height:5px;background:#1b2430;border-radius:5px;margin:5px 0;cursor:pointer}
+#progressBar{width:0%;height:100%;background:#1DB954;border-radius:5px}
+#timeDisplay{font-size:12px;color:#1DB954;margin-top:2px;text-align:right;}
+</style>
+</head>
+<body>
+
+<div id="loginPage">
+<h1>🎧 PRO MUSIC</h1>
+<button id="loginBtn" class="loginBtn">Login With Google</button>
+</div>
+
+<div id="mainContent" style="display:none">
+  <div id="songList">
+    <div class="userPanel" id="userPanel" style="display:none">
+      <img id="userPhoto" src="">
+      <div>
+        <h4 id="userName"></h4>
+        <p id="userEmail" style="font-size:9px"></p>
+      </div>
+    </div>
+    <div id="songCount">Total Songs: 0</div>
+    <div class="tabs">
+      <button class="tabBtn active" data-lang="all">All</button>
+      <button class="tabBtn" data-lang="english">English</button>
+      <button class="tabBtn" data-lang="sinhala">Sinhala</button>
+      <button class="tabBtn" data-lang="tamil">Tamil</button>
+      <button class="tabBtn" data-lang="other">Other</button>
+    </div>
+    <div class="topPanel">
+      <input type="text" placeholder="Search music..." id="search" class="search">
+      <div>
+        <button id="adminBtn">Admin</button>
+        <button id="logoutBtn">Logout</button>
+      </div>
+    </div>
+    <div id="songsContainer"></div>
+  </div>
+</div>
+
+<div id="playerPage">
+  <img id="songImg">
+  <div class="playerInfo">
+    <h4 id="songTitle"></h4>
+    <p id="artist" style="font-size:12px"></p>
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
+    <div id="timeDisplay">00:00 / 00:00</div>
+  </div>
+  <div class="playerControls">
+    <button id="likeBtn">❤️ Like</button>
+    <a id="downloadBtn" href="" download><button>⬇ Download</button></a>
+    <button id="closePlayerBtn">✖</button>
+  </div>
+  <audio id="audio"></audio>
+</div>
+
+<div id="adminPage">
+<h2>Upload Song</h2>
+<div class="upload">
+<input id="songName" placeholder="Song Title">
+<input id="artistName" placeholder="Artist">
+<select id="songLang">
+  <option value="english">English</option>
+  <option value="sinhala">Sinhala</option>
+  <option value="tamil">Tamil</option>
+  <option value="other">Other</option>
+</select>
+<input id="songURL" placeholder="Song URL">
+<input id="imgURL" placeholder="Image URL">
+<button id="uploadBtn">Upload</button>
+<button id="closeAdminBtn">Close</button>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, increment, arrayUnion, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCaAgFBQLJHTuWZchhcKcNReKeIz64SZLM",
+  authDomain:"chat-app-c35c9.firebaseapp.com",
+  projectId:"chat-app-c35c9",
+  appId:"1:751475097637:web:c90c5feafb4514b6ff7fcc"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const songsCol = collection(db,"songs");
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+const loginPage = document.getElementById("loginPage");
+const mainContent = document.getElementById("mainContent");
+const userPanel = document.getElementById("userPanel");
+const userName = document.getElementById("userName");
+const userEmail = document.getElementById("userEmail");
+const userPhoto = document.getElementById("userPhoto");
+const logoutBtn = document.getElementById("logoutBtn");
+const adminBtn = document.getElementById("adminBtn");
+const songsContainer = document.getElementById("songsContainer");
+const songImg = document.getElementById("songImg");
+const songTitle = document.getElementById("songTitle");
+const artist = document.getElementById("artist");
+const audio = document.getElementById("audio");
+const downloadBtn = document.getElementById("downloadBtn");
+const playerPage = document.getElementById("playerPage");
+const closePlayerBtn = document.getElementById("closePlayerBtn");
+const songCount = document.getElementById("songCount");
+const adminPage = document.getElementById("adminPage");
+const uploadBtn = document.getElementById("uploadBtn");
+const closeAdminBtn = document.getElementById("closeAdminBtn");
+const likeBtn = document.getElementById("likeBtn");
+const tabs = document.querySelectorAll(".tabBtn");
+const progressBar = document.getElementById("progressBar");
+const progressContainer = document.getElementById("progressContainer");
+const timeDisplay = document.getElementById("timeDisplay");
+
+let songs = [];
+let current = 0;
+let currentUser = null;
+let selectedCard = null;
+let currentLangFilter = "all";
+
+// LOGIN
+loginBtn.onclick = ()=>signInWithPopup(auth, provider);
+
+onAuthStateChanged(auth, user=>{
+  currentUser = user;
+  if(user){
+    loginPage.style.display="none";
+    mainContent.style.display="flex";
+    userPanel.style.display="flex";
+    logoutBtn.style.display="inline-block";
+    adminBtn.style.display="inline-block";
+    userName.innerText = user.displayName;
+    userEmail.innerText = user.email;
+    userPhoto.src = user.photoURL || "https://i.imgur.com/2DhmtJ4.png";
+  } else {
+    logoutBtn.style.display="none";
+    adminBtn.style.display="none";
+  }
+});
+
+// LOGOUT
+logoutBtn.onclick = ()=>{ signOut(auth).then(()=> location.reload()); };
+
+// ADMIN
+adminBtn.onclick = ()=>{ const pass = prompt("Enter Admin Password:"); if(pass==="15013"){ adminPage.style.display="block"; } else{ alert("Incorrect Password ❌"); } };
+closeAdminBtn.onclick = ()=>{ adminPage.style.display="none"; }
+
+// SONGS
+onSnapshot(songsCol, snapshot=>{ songs = snapshot.docs.map(doc=>({id:doc.id,...doc.data()})); renderSongs(songs); });
+
+// FILTER TABS
+tabs.forEach(tab=>{ tab.onclick = ()=>{ tabs.forEach(t=>t.classList.remove("active")); tab.classList.add("active"); currentLangFilter = tab.dataset.lang; renderSongs(songs); } });
+
+function renderSongs(list){
+  songsContainer.innerHTML="";
+  const filtered = list.filter(s=>{ return currentLangFilter==="all" || s.language===currentLangFilter; });
+  filtered.forEach((song,i)=>{
+    const div = document.createElement("div");
+    div.className="songCard";
+
+    const songInfo = document.createElement("div");
+    songInfo.className="songInfo";
+    songInfo.innerHTML = `<img src="${song.img}"><div><h4>${song.title}</h4><span class="songLikes">Likes: ${song.likes||0}</span></div>`;
+    songInfo.onclick = ()=> openPlayer(i, div);
+
+    div.appendChild(songInfo);
+
+    const delBtn = document.createElement("button");
+    delBtn.innerText="🗑";
+    delBtn.style.background="red";
+    delBtn.style.color="white";
+    delBtn.style.border="none";
+    delBtn.style.borderRadius="5px";
+    delBtn.style.cursor="pointer";
+    delBtn.onclick = async (e)=>{
+      e.stopPropagation();
+      const p = prompt("Enter Admin Password to delete:");
+      if(p==="15013"){
+        try{ await deleteDoc(doc(db,"songs",song.id)); alert("Deleted ✅"); } 
+        catch(err){console.error(err);}
+      }else{alert("Incorrect Password ❌");}
+    }
+    div.appendChild(delBtn);
+
+    songsContainer.appendChild(div);
+  });
+  songCount.innerText = "Total Songs: "+filtered.length;
+}
+
+// PLAYER
+function openPlayer(i, cardDiv){
+  current=i;
+  const song = songs[i];
+  songTitle.innerText = song.title;
+  artist.innerText = song.artist;
+  songImg.src = song.img;
+  audio.src=song.url;
+  audio.play();
+  downloadBtn.href=song.url;
+  playerPage.style.display="flex";
+
+  // SELECT CARD COLOR
+  if(selectedCard) selectedCard.classList.remove("selected");
+  cardDiv.classList.add("selected");
+  selectedCard = cardDiv;
+}
+
+// CLOSE PLAYER
+closePlayerBtn.onclick=()=>{audio.pause(); playerPage.style.display="none";}
+
+// LIKE SYSTEM
+likeBtn.onclick = async ()=>{
+  if(!currentUser) return alert("Login to like songs!");
+  const songDoc = doc(db,"songs",songs[current].id);
+  const likedUsers = songs[current].likedUsers||[];
+  if(likedUsers.includes(currentUser.uid)) return alert("You already liked this song!");
+  try{
+    await updateDoc(songDoc,{likes: increment(1), likedUsers: arrayUnion(currentUser.uid)});
+    alert("You liked ❤️ "+songs[current].title);
+  }catch(e){console.error(e);}
+}
+
+// UPLOAD BUTTON
+uploadBtn.onclick = async ()=>{
+  const t = document.getElementById("songName").value.trim();
+  const a = document.getElementById("artistName").value.trim();
+  const u = document.getElementById("songURL").value.trim();
+  const i = document.getElementById("imgURL").value.trim();
+  const lang = document.getElementById("songLang").value;
+  if(!t||!a||!u||!i){ alert("Fill all fields!"); return;}
+  try{
+    await addDoc(songsCol,{title:t,artist:a,url:u,img:i,likes:0,likedUsers:[], language:lang});
+    alert("Song Uploaded ✅");
+    document.getElementById("songName").value="";
+    document.getElementById("artistName").value="";
+    document.getElementById("songURL").value="";
+    document.getElementById("imgURL").value="";
+  }catch(e){
+    alert("Upload failed ❌ Check console");
+    console.error(e);
+  }
+}
+
+// SEARCH
+document.getElementById("search").onkeyup = ()=>{ const v = document.getElementById("search").value.toLowerCase(); renderSongs(songs.filter(s=>s.title.toLowerCase().includes(v))); }
+
+// PROGRESS BAR & TIMER
+audio.ontimeupdate = ()=>{
+  const progressPercent = (audio.currentTime/audio.duration)*100;
+  progressBar.style.width = progressPercent + "%";
+
+  const formatTime = t=>{
+    const m = Math.floor(t/60).toString().padStart(2,"0");
+    const s = Math.floor(t%60).toString().padStart(2,"0");
+    return `${m}:${s}`;
+  };
+  timeDisplay.innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+};
+
+// CLICK TO SEEK
+progressContainer.onclick = e=>{
+  const rect = progressContainer.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const percent = x / rect.width;
+  audio.currentTime = percent * audio.duration;
+};
+</script>
+</body>
+</html>
