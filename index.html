@@ -17,10 +17,10 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
 .loginBtn{padding:12px 30px;border:none;border-radius:30px;background:#1DB954;color:white;font-weight:bold;cursor:pointer;box-shadow:0 0 10px #32fc00;}
 #mainContent{display:flex;flex-direction:column;flex:1;overflow:hidden;}
 #songList{width:100%;background:#020617;overflow-y:auto;height:100%;padding:10px}
-.tabs{display:flex;gap:10px;margin-bottom:10px}
+.tabs{display:flex;gap:3px;margin-bottom:10px}
 .tabBtn{padding:5px 10px;border-radius:20px;border:none;cursor:pointer;background:#1b2430;color:white}
 .tabBtn.active{background:#1DB954;color:white}
-.songCard{display:flex;gap:10px;align-items:center;background:#0b0f1c;margin-bottom:10px;padding:10px;border-radius:10px;cursor:pointer;transition:0.3s;justify-content:space-between;}
+.songCard{display:flex;gap:10px;align-items:center;background:#0b0f1c;margin-bottom:10px;padding:10px;border-radius:30px;cursor:pointer;transition:0.3s;justify-content:space-between;border: 3px solid #fff;}
 .songCard.selected{background:#1DB954;padding:5px;}
 .songInfo{display:flex;gap:10px;align-items:center}
 .songCard img{width:50px;height:50px;border-radius:50%;object-fit:cover}
@@ -31,16 +31,17 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
 .userPanel div{display:flex;flex-direction:column}
 .topPanel{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;gap:10px}
 .topPanel div{display:flex;gap:5px}
-.search{padding:5px;border-radius:20px;border:none;width:100%;height:40px;padding:5px 10px;}
+.search{padding:5px;border-radius:50px;border: 3px solid #00ff15f8;  width:100%;height:40px;padding:5px 10px; background: #1b2430;color:rgb(72, 255, 0);
+font-weight: bold;}
 #adminBtn, #logoutBtn{padding:5px 10px;border-radius:20px;border:none;cursor:pointer}
 #adminBtn{background:#1DB954;color:white;display:none;}
 #logoutBtn{background:red;color:white;display:none;}
 #songCount{margin-bottom:10px;font-size:14px;color:#1DB954;}
-#playerPage{position:fixed;bottom:0;left:0;width:100%;background:#020617;padding:10px;display:none;align-items:center;justify-content:space-between;z-index:100}
-#playerPage img{width:60px;height:60px;border-radius:10px;cursor:pointer}
+#playerPage{position:fixed;bottom:0;left:0;width:100%;background:#020617;padding:10px;display:none;align-items:center;justify-content:space-between;z-index:100;box-shadow: 0 0 30px #ffffffb6;}
+#playerPage img{width:60px;height:80px;border-radius:100px;cursor:pointer; box-shadow: 0 0 10px red;border: 5px solid rgb(0, 0, 0);}
 .playerInfo{flex:1;margin-left:10px}
 .playerControls{display:flex;align-items:center;gap:10px}
-.playerControls button{padding:8px 12px;border:none;border-radius:20px;background:#1DB954;color:white;cursor:pointer}
+.playerControls button{padding:10px 10px;border:none;border-radius:20px;background:#1DB954;color:white;cursor:pointer; box-shadow: 0 0 10px #56f150;border: 2px solid #000;}
 #closePlayerBtn{background:red;border:none;color:white;padding:5px 8px;border-radius:5px;cursor:pointer}
 #adminPage{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);background:#020617;padding:20px;border-radius:10px;z-index:101}
 .upload input, .upload select{padding:8px;margin-bottom:5px;width:90%;border-radius:20px;}
@@ -48,7 +49,7 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
 /* PROGRESS BAR */
 #progressContainer{width:100%;height:5px;background:#1b2430;border-radius:5px;margin:5px 0;cursor:pointer}
 #progressBar{width:0%;height:100%;background:#1DB954;border-radius:5px}
-#timeDisplay{font-size:12px;color:#1DB954;margin-top:2px;text-align:right;}
+#timeDisplay{font-size:10px;color:#1DB954;margin-top:5px;text-align:right;}
 /* AD OVERLAY */
 #adOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;flex-direction:column;z-index:999}
 #adOverlay iframe{border:none}
@@ -84,16 +85,16 @@ color:#1DB954;
 
 .equalizer{
   display:flex;
-  gap:3px;
+  gap:5px;
   margin:5px 0;
   height:15px;
   align-items:flex-end;
 }
 
 .equalizer span{
-  width:3px;
+  width:4px;
   background:#1DB954;
-  height:5px;
+  height:10px;
   animation:equalizer 1s infinite ease-in-out;
 }
 
@@ -156,6 +157,7 @@ color:#1DB954;
 
 <div id="playerPage">
   <img id="songImg">
+  
 <div class="playerInfo">
   <h4 id="songTitle"></h4>
   <p id="artist" style="font-size:12px"></p>
@@ -166,6 +168,7 @@ color:#1DB954;
     <span></span>
     <span></span>
     <span></span>
+   
   </div>
 
   <div id="progressContainer">
@@ -202,6 +205,8 @@ color:#1DB954;
 </div>
 </div>
 
+
+
 <div id="adOverlay">
   <iframe id="adFrame" width="640" height="360"></iframe>
   <p id="adTimer">Ad ends in 10s</p>
@@ -209,6 +214,7 @@ color:#1DB954;
 
 
 <script type="module">
+
 
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -578,8 +584,15 @@ installBtn.addEventListener("click", async ()=>{
       preloader.style.display = "none";
     }, 5000);
   });
+
+  </script>
+
+<script type="module">
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then(registration => console.log("Service Worker registered:", registration))
+    .catch(err => console.error("SW registration failed:", err));
+}
 </script>
-
-
 </body>
 </html>
