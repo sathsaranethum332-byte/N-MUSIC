@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>N Music Streaming</title>
+<title>N MUSIC</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="https://i.imgur.com/2DhmtJ4.png">
+<meta name="theme-color" content="#1DB954">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
 body{background:#0f172a;color:white;display:flex;flex-direction:column;height:100vh;}
+#installBtn{position:fixed;bottom:80px;right:20px;padding:10px 20px;background:#1DB954;color:white;border:none;border-radius:30px;cursor:pointer;display:none;z-index:200;}
 #loginPage{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;width:100%;background:#0f172a}
 .loginBtn{padding:12px 30px;border:none;border-radius:30px;background:#1DB954;color:white;font-weight:bold;cursor:pointer;box-shadow:0 0 10px #32fc00;}
 #mainContent{display:flex;flex-direction:column;flex:1;overflow:hidden;}
@@ -40,14 +44,19 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
 #adminPage{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);background:#020617;padding:20px;border-radius:10px;z-index:101}
 .upload input, .upload select{padding:8px;margin-bottom:5px;width:90%;border-radius:20px;}
 .upload button{padding:8px 12px;background:#1DB954;border:none;color:white;cursor:pointer;margin-right:5px}
-
 /* PROGRESS BAR */
 #progressContainer{width:100%;height:5px;background:#1b2430;border-radius:5px;margin:5px 0;cursor:pointer}
 #progressBar{width:0%;height:100%;background:#1DB954;border-radius:5px}
 #timeDisplay{font-size:12px;color:#1DB954;margin-top:2px;text-align:right;}
+/* AD OVERLAY */
+#adOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;flex-direction:column;z-index:999}
+#adOverlay iframe{border:none}
+#adOverlay p{color:white;font-size:20px;margin-top:10px;}
 </style>
 </head>
 <body>
+
+
 
 <div id="loginPage">
 <h1>🎧 PRO MUSIC</h1>
@@ -63,6 +72,8 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
         <p id="userEmail" style="font-size:9px"></p>
       </div>
     </div>
+<button id="installBtn">📥 Install App</button>
+
     <div id="songCount">Total Songs: 0</div>
     <div class="tabs">
       <button class="tabBtn active" data-lang="all">All</button>
@@ -118,6 +129,11 @@ body{background:#0f172a;color:white;display:flex;flex-direction:column;height:10
 </div>
 </div>
 
+<div id="adOverlay">
+  <iframe id="adFrame" width="640" height="360"></iframe>
+  <p id="adTimer">Ad ends in 10s</p>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, increment, arrayUnion, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -132,188 +148,230 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const songsCol = collection(db,"songs");
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+const songsCol = collection(db,"songs");
 
-const loginPage = document.getElementById("loginPage");
-const mainContent = document.getElementById("mainContent");
-const userPanel = document.getElementById("userPanel");
-const userName = document.getElementById("userName");
-const userEmail = document.getElementById("userEmail");
-const userPhoto = document.getElementById("userPhoto");
-const logoutBtn = document.getElementById("logoutBtn");
-const adminBtn = document.getElementById("adminBtn");
-const songsContainer = document.getElementById("songsContainer");
-const songImg = document.getElementById("songImg");
-const songTitle = document.getElementById("songTitle");
-const artist = document.getElementById("artist");
-const audio = document.getElementById("audio");
-const downloadBtn = document.getElementById("downloadBtn");
-const playerPage = document.getElementById("playerPage");
-const closePlayerBtn = document.getElementById("closePlayerBtn");
-const songCount = document.getElementById("songCount");
-const adminPage = document.getElementById("adminPage");
-const uploadBtn = document.getElementById("uploadBtn");
-const closeAdminBtn = document.getElementById("closeAdminBtn");
-const likeBtn = document.getElementById("likeBtn");
-const tabs = document.querySelectorAll(".tabBtn");
-const progressBar = document.getElementById("progressBar");
-const progressContainer = document.getElementById("progressContainer");
-const timeDisplay = document.getElementById("timeDisplay");
+const loginPage=document.getElementById("loginPage");
+const mainContent=document.getElementById("mainContent");
+const userPanel=document.getElementById("userPanel");
+const userName=document.getElementById("userName");
+const userEmail=document.getElementById("userEmail");
+const userPhoto=document.getElementById("userPhoto");
+const logoutBtn=document.getElementById("logoutBtn");
+const adminBtn=document.getElementById("adminBtn");
+const songsContainer=document.getElementById("songsContainer");
+const songImg=document.getElementById("songImg");
+const songTitle=document.getElementById("songTitle");
+const artist=document.getElementById("artist");
+const audio=document.getElementById("audio");
+const downloadBtn=document.getElementById("downloadBtn");
+const playerPage=document.getElementById("playerPage");
+const closePlayerBtn=document.getElementById("closePlayerBtn");
+const songCount=document.getElementById("songCount");
+const adminPage=document.getElementById("adminPage");
+const uploadBtn=document.getElementById("uploadBtn");
+const closeAdminBtn=document.getElementById("closeAdminBtn");
+const likeBtn=document.getElementById("likeBtn");
+const tabs=document.querySelectorAll(".tabBtn");
+const progressBar=document.getElementById("progressBar");
+const progressContainer=document.getElementById("progressContainer");
+const timeDisplay=document.getElementById("timeDisplay");
+const adOverlay=document.getElementById("adOverlay");
+const adFrame=document.getElementById("adFrame");
+const adTimer=document.getElementById("adTimer");
+const installBtn=document.getElementById("installBtn");
 
-let songs = [];
-let current = 0;
-let currentUser = null;
-let selectedCard = null;
-let currentLangFilter = "all";
+let songs=[];
+let current=0;
+let currentUser=null;
+let selectedCard=null;
+let currentLangFilter="all";
 
 // LOGIN
-loginBtn.onclick = ()=>signInWithPopup(auth, provider);
-
-onAuthStateChanged(auth, user=>{
-  currentUser = user;
+document.getElementById("loginBtn").onclick=()=>signInWithPopup(auth,provider);
+onAuthStateChanged(auth,user=>{
+  currentUser=user;
   if(user){
     loginPage.style.display="none";
     mainContent.style.display="flex";
     userPanel.style.display="flex";
     logoutBtn.style.display="inline-block";
     adminBtn.style.display="inline-block";
-    userName.innerText = user.displayName;
-    userEmail.innerText = user.email;
-    userPhoto.src = user.photoURL || "https://i.imgur.com/2DhmtJ4.png";
-  } else {
+    userName.innerText=user.displayName;
+    userEmail.innerText=user.email;
+    userPhoto.src=user.photoURL||"https://i.imgur.com/2DhmtJ4.png";
+  }else{
     logoutBtn.style.display="none";
     adminBtn.style.display="none";
   }
 });
-
-// LOGOUT
-logoutBtn.onclick = ()=>{ signOut(auth).then(()=> location.reload()); };
+logoutBtn.onclick=()=>{ signOut(auth).then(()=>location.reload()); };
 
 // ADMIN
-adminBtn.onclick = ()=>{ const pass = prompt("Enter Admin Password:"); if(pass==="15013"){ adminPage.style.display="block"; } else{ alert("Incorrect Password ❌"); } };
-closeAdminBtn.onclick = ()=>{ adminPage.style.display="none"; }
+adminBtn.onclick=()=>{ const p=prompt("Enter Admin Password:"); if(p==="15013"){ adminPage.style.display="block"; }else{alert("Incorrect Password ❌");}};
+closeAdminBtn.onclick=()=>{ adminPage.style.display="none"; }
 
 // SONGS
-onSnapshot(songsCol, snapshot=>{ songs = snapshot.docs.map(doc=>({id:doc.id,...doc.data()})); renderSongs(songs); });
+onSnapshot(songsCol,snapshot=>{ songs=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})); renderSongs(songs); });
 
 // FILTER TABS
-tabs.forEach(tab=>{ tab.onclick = ()=>{ tabs.forEach(t=>t.classList.remove("active")); tab.classList.add("active"); currentLangFilter = tab.dataset.lang; renderSongs(songs); } });
+tabs.forEach(tab=>{ tab.onclick=()=>{ tabs.forEach(t=>t.classList.remove("active")); tab.classList.add("active"); currentLangFilter=tab.dataset.lang; renderSongs(songs); } });
 
+// RENDER SONGS
 function renderSongs(list){
   songsContainer.innerHTML="";
-  const filtered = list.filter(s=>{ return currentLangFilter==="all" || s.language===currentLangFilter; });
+  const filtered=list.filter(s=>currentLangFilter==="all"||s.language===currentLangFilter);
   filtered.forEach((song,i)=>{
-    const div = document.createElement("div");
+    const div=document.createElement("div");
     div.className="songCard";
-
-    const songInfo = document.createElement("div");
+    const songInfo=document.createElement("div");
     songInfo.className="songInfo";
-    songInfo.innerHTML = `<img src="${song.img}"><div><h4>${song.title}</h4><span class="songLikes">Likes: ${song.likes||0}</span></div>`;
-    songInfo.onclick = ()=> openPlayer(i, div);
-
+    songInfo.innerHTML=`<img src="${song.img}"><div><h4>${song.title}</h4><span class="songLikes">Likes: ${song.likes||0}</span></div>`;
+    songInfo.onclick=()=>openPlayer(i,div);
     div.appendChild(songInfo);
-
-    const delBtn = document.createElement("button");
+    const delBtn=document.createElement("button");
     delBtn.innerText="🗑";
-    delBtn.style.background="red";
-    delBtn.style.color="white";
-    delBtn.style.border="none";
-    delBtn.style.borderRadius="5px";
-    delBtn.style.cursor="pointer";
-    delBtn.onclick = async (e)=>{
-      e.stopPropagation();
-      const p = prompt("Enter Admin Password to delete:");
-      if(p==="15013"){
-        try{ await deleteDoc(doc(db,"songs",song.id)); alert("Deleted ✅"); } 
-        catch(err){console.error(err);}
-      }else{alert("Incorrect Password ❌");}
-    }
+    delBtn.style.background="red"; delBtn.style.color="white"; delBtn.style.border="none"; delBtn.style.borderRadius="5px"; delBtn.style.cursor="pointer";
+    delBtn.onclick=async(e)=>{ e.stopPropagation(); const p=prompt("Enter Admin Password to delete:"); if(p==="15013"){ try{ await deleteDoc(doc(db,"songs",song.id)); alert("Deleted ✅"); } catch(err){console.error(err);} }else{alert("Incorrect Password ❌"); }};
     div.appendChild(delBtn);
-
     songsContainer.appendChild(div);
   });
-  songCount.innerText = "Total Songs: "+filtered.length;
+  songCount.innerText="Total Songs: "+filtered.length;
 }
 
 // PLAYER
-function openPlayer(i, cardDiv){
+function openPlayer(i,cardDiv){
   current=i;
-  const song = songs[i];
-  songTitle.innerText = song.title;
-  artist.innerText = song.artist;
-  songImg.src = song.img;
+  const song=songs[i];
+  songTitle.innerText=song.title;
+  artist.innerText=song.artist;
+  songImg.src=song.img;
   audio.src=song.url;
   audio.play();
   downloadBtn.href=song.url;
   playerPage.style.display="flex";
-
-  // SELECT CARD COLOR
   if(selectedCard) selectedCard.classList.remove("selected");
   cardDiv.classList.add("selected");
-  selectedCard = cardDiv;
+  selectedCard=cardDiv;
 }
+closePlayerBtn.onclick=()=>{ audio.pause(); playerPage.style.display="none"; }
 
-// CLOSE PLAYER
-closePlayerBtn.onclick=()=>{audio.pause(); playerPage.style.display="none";}
-
-// LIKE SYSTEM
-likeBtn.onclick = async ()=>{
+// LIKE
+likeBtn.onclick=async()=>{
   if(!currentUser) return alert("Login to like songs!");
-  const songDoc = doc(db,"songs",songs[current].id);
-  const likedUsers = songs[current].likedUsers||[];
+  const songDoc=doc(db,"songs",songs[current].id);
+  const likedUsers=songs[current].likedUsers||[];
   if(likedUsers.includes(currentUser.uid)) return alert("You already liked this song!");
-  try{
-    await updateDoc(songDoc,{likes: increment(1), likedUsers: arrayUnion(currentUser.uid)});
-    alert("You liked ❤️ "+songs[current].title);
-  }catch(e){console.error(e);}
+  try{ await updateDoc(songDoc,{likes:increment(1),likedUsers:arrayUnion(currentUser.uid)}); alert("You liked ❤️ "+songs[current].title);}catch(e){console.error(e);}
 }
 
-// UPLOAD BUTTON
-uploadBtn.onclick = async ()=>{
-  const t = document.getElementById("songName").value.trim();
-  const a = document.getElementById("artistName").value.trim();
-  const u = document.getElementById("songURL").value.trim();
-  const i = document.getElementById("imgURL").value.trim();
-  const lang = document.getElementById("songLang").value;
-  if(!t||!a||!u||!i){ alert("Fill all fields!"); return;}
-  try{
-    await addDoc(songsCol,{title:t,artist:a,url:u,img:i,likes:0,likedUsers:[], language:lang});
-    alert("Song Uploaded ✅");
-    document.getElementById("songName").value="";
-    document.getElementById("artistName").value="";
-    document.getElementById("songURL").value="";
-    document.getElementById("imgURL").value="";
-  }catch(e){
-    alert("Upload failed ❌ Check console");
-    console.error(e);
-  }
+// UPLOAD
+uploadBtn.onclick=async()=>{
+  const t=document.getElementById("songName").value.trim();
+  const a=document.getElementById("artistName").value.trim();
+  const u=document.getElementById("songURL").value.trim();
+  const i=document.getElementById("imgURL").value.trim();
+  const lang=document.getElementById("songLang").value;
+  if(!t||!a||!u||!i){ alert("Fill all fields!"); return; }
+  try{ await addDoc(songsCol,{title:t,artist:a,url:u,img:i,likes:0,likedUsers:[],language:lang}); alert("Song Uploaded ✅"); document.getElementById("songName").value=""; document.getElementById("artistName").value=""; document.getElementById("songURL").value=""; document.getElementById("imgURL").value="";}catch(e){alert("Upload failed ❌"); console.error(e);}
 }
 
 // SEARCH
-document.getElementById("search").onkeyup = ()=>{ const v = document.getElementById("search").value.toLowerCase(); renderSongs(songs.filter(s=>s.title.toLowerCase().includes(v))); }
+document.getElementById("search").onkeyup=()=>{ const v=document.getElementById("search").value.toLowerCase(); renderSongs(songs.filter(s=>s.title.toLowerCase().includes(v))); }
 
-// PROGRESS BAR & TIMER
-audio.ontimeupdate = ()=>{
-  const progressPercent = (audio.currentTime/audio.duration)*100;
-  progressBar.style.width = progressPercent + "%";
-
-  const formatTime = t=>{
-    const m = Math.floor(t/60).toString().padStart(2,"0");
-    const s = Math.floor(t%60).toString().padStart(2,"0");
-    return `${m}:${s}`;
-  };
-  timeDisplay.innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+// PROGRESS BAR
+audio.ontimeupdate=()=>{
+  const percent=(audio.currentTime/audio.duration)*100;
+  progressBar.style.width=percent+"%";
+  const formatTime=t=>{ const m=Math.floor(t/60).toString().padStart(2,"0"); const s=Math.floor(t%60).toString().padStart(2,"0"); return `${m}:${s}`; }
+  timeDisplay.innerText=`${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
 };
+progressContainer.onclick=e=>{ const rect=progressContainer.getBoundingClientRect(); audio.currentTime=(e.clientX-rect.left)/rect.width*audio.duration; }
 
-// CLICK TO SEEK
-progressContainer.onclick = e=>{
-  const rect = progressContainer.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const percent = x / rect.width;
-  audio.currentTime = percent * audio.duration;
-};
+// DOWNLOAD WITH AD
+downloadBtn.addEventListener("click", e=>{
+  e.preventDefault();
+  adOverlay.style.display="flex";
+  adFrame.src="https://www.profitablecpmratenetwork.com/jwu3mdw99?key=556ac971c4794fdf93971feff4f40d05";
+  let timeLeft=40;
+  adTimer.innerText=`Ad ends in ${timeLeft}s`;
+  const timer=setInterval(()=>{
+    timeLeft--;
+    adTimer.innerText=`Ad ends in ${timeLeft}s`;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      adOverlay.style.display="none";
+      adFrame.src="";
+      const a=document.createElement("a");
+      a.href=downloadBtn.href;
+      a.download="";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  },1000);
+});
+
+// PWA INSTALL
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  installBtn.style.display="block";
+});
+installBtn.addEventListener("click", async ()=>{
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choiceResult=await deferredPrompt.userChoice;
+  if(choiceResult.outcome==="accepted"){ console.log("App installed"); } else { console.log("User cancelled"); }
+  deferredPrompt=null;
+  installBtn.style.display="none";
+});
 </script>
+<!-- Preloader / Animated Text -->
+<div id="preloader">
+  <h1 id="preloaderText">N MUSIC</h1>
+</div>
+
+<style>
+  #preloader {
+    position: fixed;
+    top:0; left:0;
+    width:100%;
+    height:100%;
+    background:#0f172a;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+  }
+
+  #preloaderText {
+    color: #1DB954;
+    font-size: 50px;
+    font-weight: bold;
+    opacity: 0;
+    animation: fadeInOut 5s forwards;
+  }
+
+  @keyframes fadeInOut {
+    0% {opacity:0; transform: scale(0.5);}
+    10% {opacity:1; transform: scale(1.);}
+    90% {opacity:1; transform: scale(1);}
+    100% {opacity:0; transform: scale(0.5);}
+  }
+</style>
+
+<script>
+  // Hide preloader after 5s
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      const preloader = document.getElementById("preloader");
+      preloader.style.display = "none";
+    }, 5000);
+  });
+</script>
+
 </body>
 </html>
